@@ -1,30 +1,31 @@
-<!-- netlify/functions/sendLocation.js -->
-const fetch = require("node-fetch");
-
 exports.handler = async (event) => {
   try {
-    const { name, latitude, longitude } = JSON.parse(event.body);
+    const { name, latitude, longitude, accuracy, type, deviceId } = JSON.parse(event.body);
 
-    const baseId = "appXXXXXXXXXXXX";
+    const baseId = "appRs0OLbQJLYspf5"; // <-- il tuo Base ID di Airtable
     const tableName = "REGISTRO DELLE PRESENZE";
     const airtableKey = process.env.AIRTABLE_API_KEY;
 
-    const airtableResponse = await fetch(`https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${airtableKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        fields: {
-          "Name/ID": name,
-          "Latitude": latitude,
-          "Longitude": longitude
-        }
-      })
-    });
-
-    // ...rest of your function
+    const airtableResponse = await fetch(
+      `https://api.airtable.com/v0/${baseId}/${encodeURIComponent(tableName)}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${airtableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fields: {
+            "Name/ID": name,
+            "Latitude": latitude,
+            "Longitude": longitude,
+            "Accuracy (m)": accuracy,
+            "Tipo timbratura": type,
+            "ID Dispositivo": deviceId
+          },
+        }),
+      }
+    );
 
     const contentType = airtableResponse.headers.get("content-type");
     let data = null;
@@ -38,8 +39,8 @@ exports.handler = async (event) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           success: false,
-          error: data?.error?.message || "Airtable error"
-        })
+          error: data?.error?.message || "Errore Airtable",
+        }),
       };
     }
 
@@ -48,8 +49,8 @@ exports.handler = async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         success: true,
-        data: data
-      })
+        data: data,
+      }),
     };
   } catch (err) {
     return {
@@ -57,8 +58,9 @@ exports.handler = async (event) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         success: false,
-        error: err.message
-      })
+        error: err.message,
+      }),
     };
   }
 };
+
