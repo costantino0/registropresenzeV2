@@ -4,31 +4,20 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Timbro Ingressi/Uscite Murgo</title>
+  <style>
+    #log {
+      white-space: pre-line;
+      font-family: system-ui, sans-serif;
+    }
+  </style>
 </head>
 <body>
   <h2>📍 Invia La Tua Posizione</h2>
 
-  <!-- Istruzioni -->
-  <div style="border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9;">
-    <h3>ℹ️ Istruzioni per la Timbratura</h3>
-    <p>
-      Questo modulo serve per <strong>registrare l'orario e la posizione</strong> delle risorse aziendali al momento dell'arrivo o dell'uscita dalla struttura.
-    </p>
-    <p><strong>🔹 Cosa fare:</strong></p>
-    <ol>
-      <li>Apri il link che ti è stato fornito.</li>
-      <li><strong>Attiva la geolocalizzazione</strong> del browser nelle impostazioni di privacy del dispositivo.</li>
-      <li>Seleziona se si tratta di un <strong>Ingresso</strong> o di un'<strong>Uscita</strong>.</li>
-      <li>Premi su <strong>"Invia Posizione"</strong>.</li>
-    </ol>
-    <p><strong>🔹 Dati raccolti:</strong></p>
-    <ul>
-      <li>Nome della risorsa (ID)</li>
-      <li>ID univoco del dispositivo</li>
-      <li>Latitudine e longitudine al momento dell'invio</li>
-      <li>Accuratezza della posizione in metri</li>
-    </ul>
-    <p><strong>📌 Importante:</strong> I dati raccolti saranno utilizzati <strong>esclusivamente a fini aziendali</strong> per il conteggio delle ore lavorate.</p>
+  <!-- Istruzioni compatte -->
+  <div style="border: 1px solid #ccc; padding: 12px; margin-bottom: 20px; background-color: #f4f4f4;">
+    <strong>ℹ Istruzioni:</strong> Apri il link ricevuto, abilita la geolocalizzazione sul browser, seleziona se si tratta di <em>Ingresso</em> o <em>Uscita</em>, quindi premi <strong>Invia Posizione</strong>.<br />
+    I dati raccolti (ID risorsa, ID dispositivo, posizione e precisione) saranno usati solo per il calcolo delle ore lavorate.
   </div>
 
   <!-- ID dipendente -->
@@ -63,13 +52,14 @@
     }
     document.getElementById("deviceDisplay").textContent = deviceId;
 
-    function log(msg) {
-      document.getElementById("log").textContent += msg + "\n";
+    function log(msg, reset = false) {
+      const logEl = document.getElementById("log");
+      logEl.textContent = reset ? msg + "\n" : logEl.textContent + msg + "\n";
     }
 
     async function sendLocation() {
       const type = document.getElementById("type").value;
-      log("📋 Acquisizione posizione...");
+      log("📋 Acquisizione posizione...", true);
 
       if (!navigator.geolocation) {
         log("❌ Il browser non supporta la geolocalizzazione.");
@@ -83,7 +73,7 @@
           log("📏 Precisione stimata: " + accuracy.toFixed(0) + " metri");
 
           if (accuracy > 1000) {
-            log("⚠️ La precisione è molto bassa. Ti consigliamo di usare uno smartphone o attivare il Wi-Fi.");
+            log("⚠️ Precisione troppo bassa. Usa Wi-Fi o un dispositivo con GPS.");
             return;
           }
 
@@ -96,8 +86,6 @@
             deviceId: deviceId
           };
 
-          log("📤 Dati da inviare:\n" + JSON.stringify(payload, null, 2));
-
           try {
             const res = await fetch("/.netlify/functions/sendLocation", {
               method: "POST",
@@ -105,16 +93,13 @@
               body: JSON.stringify(payload)
             });
 
-            const text = await res.text();
-            log("📥 Risposta:\n" + text);
-
             const contentType = res.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
-              log("⚠️ Risposta non in formato JSON.");
+              log("⚠️ Risposta non valida.");
               return;
             }
 
-            const result = JSON.parse(text);
+            const result = await res.json();
             log(result.success ? "✅ Posizione inviata con successo!" : "❌ Errore: " + result.error);
           } catch (err) {
             log("❌ Errore di rete: " + err.message);
